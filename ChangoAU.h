@@ -64,6 +64,7 @@
 // parameters
 static const float kDefaultValue_Volume = 0.2071;
 static const char *dataFIFO = "/Users/blucia/CHANGO_DATA_FIFO";
+static const char *cameraDriver = "/Users/blucia/Library/Developer/Xcode/DerivedData/ChangoAUClient-grxjnsznmbdwctdsgfxflsxizfpa/Build/Products/Debug/ChangoAUClient";
 static int datafd;
 static float amps[25];
 static pthread_t readerThread;
@@ -147,6 +148,7 @@ private:
     WaveChango *chango;
     Wave *wave;
     int pipeRead;
+    pid_t cameraDriverPid;
 	
 	CAAudioChannelLayout mOutputChannelLayout;
 };

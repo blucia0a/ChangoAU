@@ -77,16 +77,23 @@ ChangoAU::ChangoAU(AudioUnit component)
 
 void				ChangoAU::Cleanup()
 {
-	//delete mPink;
-	//mPink = NULL;
     
     delete chango;
     chango = NULL;
     
     changolog.close();
+    
+    /*stop the reader running and join it*/
     readerRun = false;
     pthread_join(readerThread,NULL);
-    close(datafd);
+    
+    /*Kill the camera driver thread (process)*/
+    //kill(cameraDriverPid,SIGTERM);
+    
+    /*Wait for the camera driver to come back*/
+    //int status;
+    //waitpid(cameraDriverPid,&status,WNOHANG);
+    /*The camera should be shut down now*/
     
 
 }
@@ -98,7 +105,7 @@ OSStatus			ChangoAU::Initialize()
 
 	const CAStreamBasicDescription & theDesc = GetStreamFormat(kAudioUnitScope_Output, 0);
 	
-	//mPink = new PinkNoiseGenerator::PinkNoiseGenerator(theDesc.mSampleRate);
+	
     changolog.rdbuf()->pubsetbuf(0,0);
     changolog.open("/Users/blucia/CHANGO_LOG");
     changolog << "Hello and Welcome to Chango!  Creating a chango with sample rate: " << theDesc.mSampleRate << "\n";
@@ -110,6 +117,24 @@ OSStatus			ChangoAU::Initialize()
     inited = false;
   
     readerRun = true;
+    
+  /*  cameraDriverPid = fork();
+    changolog << "Forked!\n";
+    changolog.flush();
+    
+    char *args[1] = { (char*)"/Users/blucia/Library/Developer/Xcode/DerivedData/ChangoAUClient-grxjnsznmbdwctdsgfxflsxizfpa/Build/Products/Debug/ChangoAUClient" };
+    
+    if(cameraDriverPid == 0){
+
+        changolog << "Running " << std::string(cameraDriver) << "\n";
+        changolog.flush();
+        execv(args[0],args);
+        //This ends here
+        
+    }
+*/
+    changolog << "Attempting to open the FIFO for reading\n";
+    changolog.flush();
     
     datafd = open(dataFIFO,O_RDONLY);
     
@@ -356,7 +381,7 @@ OSStatus 	ChangoAU::Render(		AudioUnitRenderActionFlags &ioActionFlags,
             }
             
         }
-            //mPink->Render((Float32*)outputBufList.mBuffers[i].mData, nFrames, vol);
+        
 	}	
 	return noErr;
 }
@@ -370,11 +395,8 @@ void *readerThreadFn(void*v){
     
     while(readerRun){
         
-        changolog << "reading from FIFO\n";
-        changolog.flush();
-
         read(datafd, (char*)myAmps, 25 * sizeof(float));
-
+/*
         for(int i = 0; i < 25; i++){
             
             changolog << myAmps[i] << ":";
@@ -382,7 +404,7 @@ void *readerThreadFn(void*v){
         }
         changolog << "\n";
         changolog.flush();
-        
+*/
         pthread_mutex_lock(&bufLock);
         for(int i = 0; i < 25; i++){
             amps[i] = myAmps[i];
@@ -390,6 +412,8 @@ void *readerThreadFn(void*v){
         pthread_mutex_unlock(&bufLock);
     
     }
+    
+    close(datafd);
     pthread_exit(0);
     
 }
